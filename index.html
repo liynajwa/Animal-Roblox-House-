@@ -1,0 +1,1181 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Animal House Obby — Preposition Quest</title>
+    <!-- Tailwind CSS for modern responsive UI overlay -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts for playful Year 2 typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .font-game {
+            font-family: 'Fredoka One', cursive;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+        }
+        /* Custom smooth scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.5);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-indigo-950 text-white overflow-hidden h-screen w-screen">
+
+    <div id="canvas-container"></div>
+
+    <div id="start-screen" class="ui-layer absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-blue-500 via-indigo-600 to-purple-800 p-4 overflow-y-auto">
+        <div class="bg-white/95 text-indigo-950 rounded-3xl p-6 md:p-10 max-w-xl w-full shadow-2xl border-4 border-yellow-400 text-center my-auto">
+            <div class="inline-block bg-yellow-400 text-indigo-900 font-game px-4 py-1 rounded-full text-sm uppercase tracking-wider mb-2 shadow">Year 2 English Quest</div>
+            <h1 class="font-game text-3xl md:text-5xl text-blue-600 drop-shadow mb-2">Animal House Obby</h1>
+            <h2 class="font-game text-xl md:text-2xl text-purple-600 mb-6">Preposition Quest 🏠🐾</h2>
+            
+            <p class="text-sm md:text-base text-gray-700 mb-6 font-semibold">
+                Explore rooms, find cute animals, and master <span class="text-blue-600 font-bold">ON</span>, <span class="text-purple-600 font-bold">IN</span>, and <span class="text-green-600 font-bold">UNDER</span>!
+            </p>
+
+            <div class="mb-6 text-left bg-blue-50 p-4 rounded-2xl border-2 border-blue-200">
+                <label class="block font-game text-blue-900 mb-2 text-sm md:text-base">Enter Your Player Nickname:</label>
+                <input type="text" id="player-nickname" maxlength="15" placeholder="e.g. Aminah" class="w-full px-4 py-3 rounded-xl border-2 border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-300 font-game text-lg text-gray-800 bg-white">
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+                <button id="start-btn" class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-game py-4 px-8 rounded-2xl shadow-lg transform transition active:scale-95 text-xl flex items-center justify-center gap-2 border-b-4 border-emerald-800">
+                    🚀 Start Adventure!
+                </button>
+                <button id="mute-btn" class="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-game py-4 px-6 rounded-2xl shadow-lg transform transition active:scale-95 text-lg flex items-center justify-center gap-2 border-b-4 border-orange-700">
+                    🔊 Audio: ON
+                </button>
+            </div>
+
+            <!-- Local Leaderboard Preview -->
+            <div class="bg-yellow-50 rounded-2xl p-4 border-2 border-yellow-300">
+                <h3 class="font-game text-lg text-amber-800 mb-2 flex items-center justify-center gap-2">
+                    🏆 Top Local Scores (This Device)
+                </h3>
+                <div id="preview-leaderboard" class="max-h-32 overflow-y-auto text-sm text-gray-700 space-y-1">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-hud" class="ui-layer absolute inset-0 pointer-events-none hidden flex flex-col justify-between p-4 md:p-6">
+        <!-- Top Bar -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <!-- Mission & Progress -->
+            <div class="bg-white/90 backdrop-blur text-indigo-950 px-5 py-3 rounded-2xl shadow-lg border-2 border-indigo-300 pointer-events-auto flex items-center gap-4">
+                <div>
+                    <div id="hud-mission-num" class="font-game text-xs md:text-sm text-blue-600">MISSION 1 / 20</div>
+                    <div id="hud-room-name" class="font-game text-lg md:text-xl text-indigo-900">Living Room</div>
+                </div>
+                <div class="w-24 md:w-32 bg-gray-200 h-3 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-green-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- Score & Timer -->
+            <div class="flex gap-3 pointer-events-auto">
+                <div class="bg-white/90 backdrop-blur text-indigo-950 px-4 py-2 rounded-2xl shadow-lg border-2 border-amber-300 flex items-center gap-2">
+                    <span class="text-2xl">⭐</span>
+                    <div>
+                        <div class="text-[10px] font-game text-amber-600 uppercase">Score</div>
+                        <div id="hud-score" class="font-game text-lg">0</div>
+                    </div>
+                </div>
+                <div class="bg-white/90 backdrop-blur text-indigo-950 px-4 py-2 rounded-2xl shadow-lg border-2 border-red-300 flex items-center gap-2">
+                    <span class="text-2xl">⏱️</span>
+                    <div>
+                        <div class="text-[10px] font-game text-red-600 uppercase">Time</div>
+                        <div id="hud-timer" class="font-game text-lg">60s</div>
+                    </div>
+                </div>
+                <button id="hud-pause-btn" class="bg-white/90 hover:bg-white text-indigo-950 px-3 py-2 rounded-2xl shadow-lg border-2 border-indigo-300 font-game text-sm flex items-center justify-center">
+                    ⏸️
+                </button>
+            </div>
+        </div>
+
+        <!-- Center Notification / Mission Banner -->
+        <div id="mission-banner" class="self-center bg-yellow-400/95 text-yellow-950 px-6 py-3 rounded-2xl shadow-2xl border-4 border-yellow-200 font-game text-lg md:text-2xl animate-bounce text-center max-w-md pointer-events-auto hidden">
+            🎯 Find the cat!
+        </div>
+
+        <!-- Interaction Prompt (Found It!) -->
+        <div id="interaction-prompt" class="self-center mb-12 hidden pointer-events-auto">
+            <button id="found-it-btn" class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-game text-xl md:text-2xl px-8 py-4 rounded-3xl shadow-2xl border-b-4 border-emerald-800 animate-pulse flex items-center gap-3">
+                ✨ FOUND IT! Start Sentence Challenge!
+            </button>
+        </div>
+
+        <!-- Bottom Movement Controls (Mobile Virtual Joystick & Jump) -->
+        <div class="flex justify-between items-end pointer-events-auto pb-2">
+            <!-- Virtual Joystick Area -->
+            <div id="joystick-zone" class="relative w-32 h-32 bg-white/20 backdrop-blur rounded-full border-2 border-white/40 flex items-center justify-center touch-none">
+                <div id="joystick-knob" class="absolute w-12 h-12 bg-white rounded-full shadow-lg transition-transform duration-75"></div>
+            </div>
+            <!-- Jump Button -->
+            <button id="jump-btn" class="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 active:scale-95 text-white font-game text-xl rounded-full shadow-2xl border-b-4 border-orange-700 flex items-center justify-center touch-none">
+                🦘 JUMP
+            </button>
+        </div>
+    </div>
+
+    <div id="puzzle-modal" class="ui-layer fixed inset-0 bg-indigo-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-white text-indigo-950 rounded-3xl p-6 md:p-8 max-w-xl w-full shadow-2xl border-4 border-purple-500 text-center">
+            <div class="inline-block bg-purple-100 text-purple-700 font-game px-4 py-1 rounded-full text-sm uppercase tracking-wider mb-3">Sentence Challenge</div>
+            <h3 class="font-game text-xl md:text-2xl text-indigo-900 mb-2">Arrange the words into the correct sentence!</h3>
+            <p class="text-sm text-gray-600 mb-6">Tap the word tiles below in the right order.</p>
+
+            <!-- Answer Drop / Construction Area -->
+            <div id="answer-area" class="min-h-[70px] bg-indigo-50 border-3 border-dashed border-indigo-300 rounded-2xl p-4 mb-6 flex flex-wrap gap-2 items-center justify-center">
+                <!-- Answer tiles appear here -->
+            </div>
+
+            <!-- Word Tiles Bank -->
+            <div id="word-bank" class="bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 mb-6 flex flex-wrap gap-2 items-center justify-center min-h-[90px]">
+                <!-- Scrambled tiles appear here -->
+            </div>
+
+            <!-- Puzzle Action Buttons -->
+            <div class="flex flex-wrap gap-3 justify-center">
+                <button id="puzzle-submit" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 text-white font-game px-6 py-3 rounded-xl shadow-md border-b-4 border-emerald-800 text-base">
+                    ✅ Submit Answer
+                </button>
+                <button id="puzzle-clear" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 text-white font-game px-6 py-3 rounded-xl shadow-md border-b-4 border-orange-700 text-base">
+                    🔄 Clear
+                </button>
+                <button id="puzzle-hint" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 text-white font-game px-6 py-3 rounded-xl shadow-md border-b-4 border-indigo-800 text-base">
+                    💡 Hint (-20 pts)
+                </button>
+            </div>
+            <div id="puzzle-feedback" class="mt-4 font-game text-base h-8"></div>
+        </div>
+    </div>
+
+    <div id="feedback-modal" class="ui-layer fixed inset-0 bg-indigo-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-white text-indigo-950 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border-4 border-emerald-400 text-center">
+            <div id="feedback-emoji" class="text-6xl mb-3 animate-bounce">🎉</div>
+            <h3 id="feedback-title" class="font-game text-2xl md:text-3xl text-emerald-600 mb-2">Wonderful!</h3>
+            <p id="feedback-desc" class="text-gray-700 font-semibold mb-6">You got the preposition correct!</p>
+            <button id="next-mission-btn" class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 text-white font-game py-4 rounded-2xl shadow-lg border-b-4 border-emerald-800 text-xl">
+                Continue Adventure 🚀
+            </button>
+        </div>
+    </div>
+
+    <div id="leaderboard-modal" class="ui-layer fixed inset-0 bg-indigo-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white text-indigo-950 rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl border-4 border-yellow-400 my-auto">
+            <div class="text-center mb-6">
+                <span class="text-5xl">🏆</span>
+                <h2 class="font-game text-3xl md:text-4xl text-amber-600 mt-2">Quest Completed!</h2>
+                <p id="final-stats" class="text-gray-600 font-semibold mt-1">Fantastic job, Aminah! You finished all 20 missions.</p>
+            </div>
+
+            <!-- Top 20 Table -->
+            <div class="bg-yellow-50 rounded-2xl p-4 border-2 border-yellow-200 mb-6 max-h-64 overflow-y-auto">
+                <h3 class="font-game text-lg text-amber-800 mb-2 text-center">Local Leaderboard — This Device Only</h3>
+                <table class="w-full text-left border-collapse text-sm md:text-base">
+                    <thead>
+                        <tr class="border-b-2 border-yellow-300 font-game text-amber-900">
+                            <th class="py-2 px-3">Rank</th>
+                            <th class="py-2 px-3">Player</th>
+                            <th class="py-2 px-3">Score</th>
+                            <th class="py-2 px-3">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="full-leaderboard-body">
+                        <!-- Populated via JS -->
+                    </tbody>
+                </table>
+                <p class="text-[11px] text-gray-500 text-center mt-2 italic">Note: Local leaderboard stores scores on this web browser only.</p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="play-again-btn" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-indigo-600 text-white font-game py-4 rounded-2xl shadow-lg border-b-4 border-indigo-800 text-lg">
+                    🔄 Play Again
+                </button>
+                <button id="reset-scores-btn" class="bg-gradient-to-r from-red-500 to-rose-600 hover:from-rose-600 text-white font-game py-4 px-6 rounded-2xl shadow-lg border-b-4 border-rose-800 text-lg">
+                    🗑️ Reset Scores
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SoundEngine {
+            constructor() {
+                this.muted = false;
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                } catch(e) {
+                    this.ctx = null;
+                }
+            }
+            playPop() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            }
+            playSuccess() {
+                if (this.muted || !this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.1);
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime + idx * 0.1);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.1 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.1);
+                    osc.stop(this.ctx.currentTime + idx * 0.1 + 0.2);
+                });
+            }
+            playError() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(120, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+            playJump() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+        }
+        const soundEngine = new SoundEngine();
+
+        const MISSIONS = [
+            { id: 1, type: 'singular', animal: 'cat', count: 1, preposition: 'on', object: 'bed', target: 'There is a cat on the bed.', room: 'Bedroom', hint: 'Look in the Bedroom on the bed!' },
+            { id: 2, type: 'plural', animal: 'duck', count: 2, preposition: 'in', object: 'bathtub', target: 'There are two ducks in the bathtub.', room: 'Bathroom', hint: 'Look in the Bathroom inside the bathtub!' },
+            { id: 3, type: 'singular', animal: 'spider', count: 1, preposition: 'under', object: 'chair', target: 'There is a spider under the chair.', room: 'Dining room', hint: 'Look in the Dining room underneath the chair!' },
+            { id: 4, type: 'plural', animal: 'rat', count: 4, preposition: 'on', object: 'sofa', target: 'There are four rats on the sofa.', room: 'Living room', hint: 'Look in the Living room on the sofa!' },
+            { id: 5, type: 'singular', animal: 'dog', count: 1, preposition: 'in', object: 'box', target: 'There is a dog in the box.', room: 'Living room', hint: 'Look in the Living room inside the box!' },
+            { id: 6, type: 'plural', animal: 'elephant', count: 4, preposition: 'under', object: 'table', target: 'There are four elephants under the table.', room: 'Dining room', hint: 'Look in the Dining room under the large table!' },
+            { id: 7, type: 'singular', animal: 'duck', count: 1, preposition: 'on', object: 'chair', target: 'There is a duck on the chair.', room: 'Dining room', hint: 'Look in the Dining room on a chair!' },
+            { id: 8, type: 'plural', animal: 'spider', count: 5, preposition: 'in', object: 'basket', target: 'There are five spiders in the basket.', room: 'Kitchen', hint: 'Look in the Kitchen inside the basket!' },
+            { id: 9, type: 'singular', animal: 'rat', count: 1, preposition: 'under', object: 'bed', target: 'There is a rat under the bed.', room: 'Bedroom', hint: 'Look in the Bedroom under the bed!' },
+            { id: 10, type: 'plural', animal: 'cat', count: 2, preposition: 'on', object: 'sofa', target: 'There are two cats on the sofa.', room: 'Living room', hint: 'Look in the Living room on the sofa!' },
+            { id: 11, type: 'singular', animal: 'elephant', count: 1, preposition: 'in', object: 'room', target: 'There is an elephant in the room.', room: 'Living room', hint: 'Look inside the Living room area!' },
+            { id: 12, type: 'plural', animal: 'dog', count: 3, preposition: 'under', object: 'table', target: 'There are three dogs under the table.', room: 'Kitchen', hint: 'Look in the Kitchen under the table!' },
+            { id: 13, type: 'singular', animal: 'lizard', count: 1, preposition: 'on', object: 'box', target: 'There is a lizard on the box.', room: 'Bedroom', hint: 'Look in the Bedroom on top of the storage box!' },
+            { id: 14, type: 'plural', animal: 'frog', count: 4, preposition: 'in', object: 'bathtub', target: 'There are four frogs in the bathtub.', room: 'Bathroom', hint: 'Look in the Bathroom inside the bathtub!' },
+            { id: 15, type: 'singular', animal: 'frog', count: 1, preposition: 'under', object: 'chair', target: 'There is a frog under the chair.', room: 'Dining room', hint: 'Look in the Dining room under the chair!' },
+            { id: 16, type: 'plural', animal: 'lizard', count: 5, preposition: 'on', object: 'table', target: 'There are five lizards on the table.', room: 'Kitchen', hint: 'Look in the Kitchen on top of the table!' },
+            { id: 17, type: 'singular', animal: 'spider', count: 1, preposition: 'in', object: 'basket', target: 'There is a spider in the basket.', room: 'Kitchen', hint: 'Look in the Kitchen inside the basket!' },
+            { id: 18, type: 'plural', animal: 'rat', count: 2, preposition: 'under', object: 'bed', target: 'There are two rats under the bed.', room: 'Bedroom', hint: 'Look in the Bedroom under the bed!' },
+            { id: 19, type: 'singular', animal: 'duck', count: 1, preposition: 'in', object: 'bathtub', target: 'There is a duck in the bathtub.', room: 'Bathroom', hint: 'Look in the Bathroom inside the bathtub!' },
+            { id: 20, type: 'plural', animal: 'elephant', count: 3, preposition: 'on', object: 'platform', target: 'There are three elephants on the platform.', room: 'Living room', hint: 'Look in the Living room on the big wooden platform!' }
+        ];
+
+        let scene, camera, renderer;
+        let player, playerVelocity = new THREE.Vector3(), isGrounded = false;
+        let keys = { w: false, a: false, s: false, d: false, space: false, arrowup: false, arrowleft: false, arrowdown: false, arrowright: false };
+        let touchMove = { x: 0, y: 0, active: false };
+        let worldObjects = [], animalObjects = [], colliders = [];
+        let currentMissionIndex = 0;
+        let score = 0, startTime = 0, missionTimer = 60, timerInterval = null;
+        let gameActive = false, currentTargetAnimalMesh = null, playerNickname = 'Pupil';
+        let currentAnswerTiles = [], currentScrambledTiles = [];
+        let highlightPulse = 0;
+
+        function init3DWorld() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb); // Sky blue
+            scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfffaed, 0.9);
+            sunLight.position.set(30, 50, 30);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 150;
+            const d = 30;
+            sunLight.shadow.camera.left = -d;
+            sunLight.shadow.camera.right = d;
+            sunLight.shadow.camera.top = d;
+            sunLight.shadow.camera.bottom = -d;
+            scene.add(sunLight);
+
+            buildHouseStructure();
+            buildPlayer();
+            setupEventListeners();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function buildHouseStructure() {
+            // House floor grid (5 rooms layout in a spacious house block)
+            // Living room (x: -15 to 0, z: -15 to 0)
+            // Bedroom (x: -15 to 0, z: 0 to 15)
+            // Kitchen (x: 0 to 15, z: -15 to 0)
+            // Bathroom (x: 0 to 15, z: 0 to 7.5)
+            // Dining room (x: 0 to 15, z: 7.5 to 15)
+
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0xdeb887, roughness: 0.8 });
+            const floorGeo = new THREE.PlaneGeometry(60, 60);
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Room boundary walls & collision colliders
+            createWall(0, 3, -30, 60, 6, 1); // North outer wall
+            createWall(0, 3, 30, 60, 6, 1);  // South outer wall
+            createWall(-30, 3, 0, 1, 6, 60); // West outer wall
+            createWall(30, 3, 0, 1, 6, 60);  // East outer wall
+
+            // Interior dividing walls
+            createWall(0, 3, -7.5, 30, 6, 1); // Horizontal divider top
+            createWall(-7.5, 3, 7.5, 1, 6, 15); // Vertical divider left
+            createWall(7.5, 3, 3.75, 1, 6, 7.5); // Vertical divider right lower
+
+            // Room Signs / Banners in 3D
+            createRoomSign("Living Room", -10, 5.5, -14.5, 0x3b82f6);
+            createRoomSign("Bedroom", -10, 5.5, 14.5, 0xec4899);
+            createRoomSign("Kitchen", 10, 5.5, -14.5, 0x10b981);
+            createRoomSign("Bathroom", 10, 5.5, 3.5, 0x06b6d4);
+            createRoomSign("Dining Room", 10, 5.5, 14.5, 0xf59e0b);
+
+            // Furniture
+            // 1. Bed in Bedroom (-10, 0, 10)
+            createBed(-10, 0, 10);
+            // 2. Bathtub in Bathroom (10, 0, 3)
+            createBathtub(10, 0, 3);
+            // 3. Chairs and Tables (Dining room: 10, 0, 10; Living room: -10, 0, -10)
+            createTableAndChairs(10, 0, 10); // Dining table
+            createSofa(-10, 0, -10); // Living room sofa
+            createBox(-5, 0, -5); // Living room box
+            createTableAndChairs(10, 0, -8); // Kitchen table
+            createBasket(5, 0, -10); // Kitchen basket
+            createBox(-10, 0, 5); // Bedroom box
+            createPlatform(-10, 0, -3); // Living room platform for Mission 20
+        }
+
+        function createWall(x, y, z, w, h, d) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xf3f4f6, roughness: 0.5 });
+            const wall = new THREE.Mesh(geo, mat);
+            wall.position.set(x, y, z);
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            scene.add(wall);
+            colliders.push(wall);
+        }
+
+        function createRoomSign(text, x, y, z, colorHex) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#' + colorHex.toString(16).padStart(6, '0');
+            ctx.fillRect(0, 0, 256, 128);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 32px Quicksand, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 128, 64);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+            const geo = new THREE.PlaneGeometry(4, 2);
+            const sign = new THREE.Mesh(geo, mat);
+            sign.position.set(x, y, z);
+            if (Math.abs(x) === 10 && z === -14.5) sign.rotation.y = 0;
+            else if (Math.abs(x) === 10 && (z === 14.5 || z === 3.5)) sign.rotation.y = 0;
+            scene.add(sign);
+        }
+
+        function createBed(x, y, z) {
+            const group = new THREE.Group();
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+            const mattressMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+            const pillowMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(4, 0.8, 6), frameMat);
+            frame.position.y = 0.4;
+            frame.castShadow = true;
+            group.add(frame);
+
+            const mattress = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.8, 5.6), mattressMat);
+            mattress.position.y = 1.0;
+            mattress.castShadow = true;
+            group.add(mattress);
+
+            const pillow = new THREE.Mesh(new THREE.BoxGeometry(2, 0.4, 1.2), pillowMat);
+            pillow.position.set(0, 1.5, -2);
+            pillow.castShadow = true;
+            group.add(pillow);
+
+            group.position.set(x, y, z);
+            scene.add(group);
+            worldObjects.push(group);
+            colliders.push(frame);
+        }
+
+        function createBathtub(x, y, z) {
+            const group = new THREE.Group();
+            const tubMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+            const waterMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.7 });
+
+            const outer = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 6), tubMat);
+            outer.position.y = 1;
+            outer.castShadow = true;
+            group.add(outer);
+
+            const water = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.2, 5.6), waterMat);
+            water.position.y = 1.2;
+            group.add(water);
+
+            group.position.set(x, y, z);
+            scene.add(group);
+            worldObjects.push(group);
+            colliders.push(outer);
+        }
+
+        function createTableAndChairs(x, y, z) {
+            const group = new THREE.Group();
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0xa0522d });
+
+            // Table top
+            const top = new THREE.Mesh(new THREE.BoxGeometry(5, 0.4, 4), woodMat);
+            top.position.y = 2.2;
+            top.castShadow = true;
+            group.add(top);
+
+            // Table legs
+            [-2.2, 2.2].forEach(lx => {
+                [-1.7, 1.7].forEach(lz => {
+                    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.4, 2.2, 0.4), woodMat);
+                    leg.position.set(lx, 1.1, lz);
+                    leg.castShadow = true;
+                    group.add(leg);
+                });
+            });
+
+            // Chairs
+            [-3, 3].forEach(cx => {
+                const chair = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), woodMat);
+                chair.position.set(cx, 0.6, 0);
+                chair.castShadow = true;
+                group.add(chair);
+            });
+
+            group.position.set(x, y, z);
+            scene.add(group);
+            worldObjects.push(group);
+            colliders.push(top);
+        }
+
+        function createSofa(x, y, z) {
+            const group = new THREE.Group();
+            const sofaMat = new THREE.MeshStandardMaterial({ color: 0x9333ea });
+
+            const base = new THREE.Mesh(new THREE.BoxGeometry(5, 1, 2.5), sofaMat);
+            base.position.y = 0.5;
+            base.castShadow = true;
+            group.add(base);
+
+            const back = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.8), sofaMat);
+            back.position.set(0, 1.8, -0.85);
+            back.castShadow = true;
+            group.add(back);
+
+            group.position.set(x, y, z);
+            scene.add(group);
+            worldObjects.push(group);
+            colliders.push(base);
+        }
+
+        function createBox(x, y, z) {
+            const group = new THREE.Group();
+            const boxMat = new THREE.MeshStandardMaterial({ color: 0xd97706 });
+            const box = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), boxMat);
+            box.position.y = 1;
+            box.castShadow = true;
+            group.add(box);
+
+            group.position.set(x, y, z);
+            scene.add(group);
+            worldObjects.push(group);
+            colliders.push(box);
+        }
+
+        function createBasket(x, y, z) {
+            const group = new THREE.Group();
+            const basketMat = new THREE.MeshStandardMaterial({ color: 0xb45309 });
+            const basket = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1, 1.5, 8), basketMat);
+            basket.position.y = 0.75;
+            basket.castShadow = true;
+            group.add(basket);
+
+            group.position.set(x, y, z);
+            scene.add(group);
+            worldObjects.push(group);
+            colliders.push(basket);
+        }
+
+        function createPlatform(x, y, z) {
+            const group = new THREE.Group();
+            const platMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+            const platform = new THREE.Mesh(new THREE.BoxGeometry(6, 0.6, 6), platMat);
+            platform.position.y = 0.3;
+            platform.castShadow = true;
+            group.add(platform);
+
+            group.position.set(x, y, z);
+            scene.add(group);
+            worldObjects.push(group);
+            colliders.push(platform);
+        }
+
+        function buildPlayer() {
+            player = new THREE.Group();
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xfcd34d });
+            const shirtMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a });
+
+            // Head
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), skinMat);
+            head.position.y = 2.4;
+            head.castShadow = true;
+            player.add(head);
+
+            // Torso
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 0.6), shirtMat);
+            torso.position.y = 1.4;
+            torso.castShadow = true;
+            player.add(torso);
+
+            // Legs
+            const legGeo = new THREE.BoxGeometry(0.5, 1.2, 0.5);
+            const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+            leftLeg.position.set(-0.3, 0.6, 0);
+            leftLeg.castShadow = true;
+            player.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+            rightLeg.position.set(0.3, 0.6, 0);
+            rightLeg.castShadow = true;
+            player.add(rightLeg);
+
+            player.position.set(-10, 0, -5);
+            scene.add(player);
+        }
+
+        function createAnimalMesh(type) {
+            const group = new THREE.Group();
+            let bodyMat, accentMat;
+
+            switch(type) {
+                case 'cat':
+                    bodyMat = new THREE.MeshStandardMaterial({ color: 0xf97316 }); // Orange cat
+                    const catBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.6), bodyMat);
+                    catBody.position.y = 0.6;
+                    catBody.castShadow = true;
+                    group.add(catBody);
+                    const catHead = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), bodyMat);
+                    catHead.position.set(0, 1.3, 0.8);
+                    catHead.castShadow = true;
+                    group.add(catHead);
+                    break;
+                case 'duck':
+                    bodyMat = new THREE.MeshStandardMaterial({ color: 0xfacc15 }); // Yellow duck
+                    const duckBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1, 1.5), bodyMat);
+                    duckBody.position.y = 0.6;
+                    duckBody.castShadow = true;
+                    group.add(duckBody);
+                    const duckHead = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), bodyMat);
+                    duckHead.position.set(0, 1.4, 0.6);
+                    duckHead.castShadow = true;
+                    group.add(duckHead);
+                    const beak = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.6), new THREE.MeshStandardMaterial({ color: 0xf97316 }));
+                    beak.position.set(0, 1.3, 1.1);
+                    group.add(beak);
+                    break;
+                case 'spider':
+                    bodyMat = new THREE.MeshStandardMaterial({ color: 0x1f2937 }); // Dark spider
+                    const spiderBody = new THREE.Mesh(new THREE.SphereGeometry(0.7, 8, 8), bodyMat);
+                    spiderBody.position.y = 0.6;
+                    spiderBody.castShadow = true;
+                    group.add(spiderBody);
+                    break;
+                case 'rat':
+                    bodyMat = new THREE.MeshStandardMaterial({ color: 0x9ca3af }); // Gray rat
+                    const ratBody = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 1.4), bodyMat);
+                    ratBody.position.y = 0.4;
+                    ratBody.castShadow = true;
+                    group.add(ratBody);
+                    break;
+                case 'dog':
+                    bodyMat = new THREE.MeshStandardMaterial({ color: 0xd97706 }); // Brown dog
+                    const dogBody = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1, 2), bodyMat);
+                    dogBody.position.y = 0.7;
+                    dogBody.castShadow = true;
+                    group.add(dogBody);
+                    const dogHead = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), bodyMat);
+                    dogHead.position.set(0, 1.5, 1);
+                    dogHead.castShadow = true;
+                    group.add(dogHead);
+                    break;
+                case 'elephant':
+                    bodyMat = new THREE.MeshStandardMaterial({ color: 0x64748b }); // Slate gray elephant
+                    const eleBody = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2, 3.5), bodyMat);
+                    eleBody.position.y = 1.2;
+                    eleBody.castShadow = true;
+                    group.add(eleBody);
+                    const eleHead = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.8, 1.8), bodyMat);
+                    eleHead.position.set(0, 2.2, 1.6);
+                    eleHead.castShadow = true;
+                    group.add(eleHead);
+                    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.8, 0.6), bodyMat);
+                    trunk.position.set(0, 1.4, 2.4);
+                    group.add(trunk);
+                    break;
+                case 'lizard':
+                    bodyMat = new THREE.MeshStandardMaterial({ color: 0x22c55e }); // Green lizard
+                    const lizBody = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 2), bodyMat);
+                    lizBody.position.y = 0.4;
+                    lizBody.castShadow = true;
+                    group.add(lizBody);
+                    break;
+                case 'frog':
+                    bodyMat = new THREE.MeshStandardMaterial({ color: 0x10b981 }); // Bright green frog
+                    const frogBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.2), bodyMat);
+                    frogBody.position.y = 0.5;
+                    frogBody.castShadow = true;
+                    group.add(frogBody);
+                    break;
+            }
+            return group;
+        }
+
+        function spawnMissionAnimals(mission) {
+            // Remove existing animals
+            animalObjects.forEach(a => scene.remove(a));
+            animalObjects = [];
+
+            let positions = [];
+            // Calculate spawn position based on object and preposition
+            let basePos = { x: 0, y: 0, z: 0 };
+            if (mission.object === 'bed') basePos = { x: -10, y: 1.5, z: 10 };
+            else if (mission.object === 'bathtub') basePos = { x: 10, y: 1.2, z: 3 };
+            else if (mission.object === 'chair' && mission.room === 'Dining room') basePos = { x: 7, y: 0.6, z: 10 };
+            else if (mission.object === 'chair') basePos = { x: 10, y: 0.6, z: 10 };
+            else if (mission.object === 'sofa') basePos = { x: -10, y: 1.2, z: -10 };
+            else if (mission.object === 'box') basePos = { x: -5, y: 2, z: -5 };
+            else if (mission.object === 'table') basePos = { x: 10, y: 2.4, z: 10 };
+            else if (mission.object === 'basket') basePos = { x: 5, y: 1.5, z: -10 };
+            else if (mission.object === 'room') basePos = { x: -10, y: 0, z: -5 };
+            else if (mission.object === 'platform') basePos = { x: -10, y: 0.6, z: -3 };
+
+            if (mission.preposition === 'under') {
+                basePos.y -= 1.2;
+            }
+
+            for (let i = 0; i < mission.count; i++) {
+                const animal = createAnimalMesh(mission.animal);
+                // Offset multiple animals slightly so they don't overlap completely
+                let offsetX = (i - (mission.count - 1) / 2) * 0.8;
+                let offsetZ = (i % 2 === 0 ? 1 : -1) * 0.4;
+                if (mission.object === 'room') {
+                    offsetX = (Math.random() - 0.5) * 4;
+                    offsetZ = (Math.random() - 0.5) * 4;
+                }
+                animal.position.set(basePos.x + offsetX, basePos.y, basePos.z + offsetZ);
+                scene.add(animal);
+                animalObjects.push(animal);
+                if (i === 0) currentTargetAnimalMesh = animal;
+            }
+        }
+
+        function setupEventListeners() {
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.w = true;
+                if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = true;
+                if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') keys.s = true;
+                if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = true;
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    triggerJump();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.w = false;
+                if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = false;
+                if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') keys.s = false;
+                if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = false;
+            });
+
+            // Virtual Joystick Touch Handling
+            const joystickZone = document.getElementById('joystick-zone');
+            const joystickKnob = document.getElementById('joystick-knob');
+            let joystickCenter = { x: 0, y: 0 };
+
+            joystickZone.addEventListener('touchstart', (e) => {
+                const rect = joystickZone.getBoundingClientRect();
+                joystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                touchMove.active = true;
+                handleTouchMove(e.touches[0]);
+            });
+
+            joystickZone.addEventListener('touchmove', (e) => {
+                if (touchMove.active) handleTouchMove(e.touches[0]);
+            });
+
+            joystickZone.addEventListener('touchend', () => {
+                touchMove.active = false;
+                touchMove.x = 0;
+                touchMove.y = 0;
+                joystickKnob.style.transform = `translate(0px, 0px)`;
+            });
+
+            function handleTouchMove(touch) {
+                const dx = touch.clientX - joystickCenter.x;
+                const dy = touch.clientY - joystickCenter.y;
+                const dist = Math.min(50, Math.sqrt(dx * dx + dy * dy));
+                const angle = Math.atan2(dy, dx);
+                const nx = Math.cos(angle) * dist;
+                const ny = Math.sin(angle) * dist;
+                joystickKnob.style.transform = `translate(${nx}px, ${ny}px)`;
+                touchMove.x = nx / 50;
+                touchMove.y = ny / 50;
+            }
+
+            document.getElementById('jump-btn').addEventListener('click', triggerJump);
+            document.getElementById('jump-btn').addEventListener('touchstart', (e) => { e.preventDefault(); triggerJump(); });
+        }
+
+        function triggerJump() {
+            if (isGrounded) {
+                playerVelocity.y = 0.35;
+                isGrounded = false;
+                soundEngine.playJump();
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function updateGame(delta) {
+            if (!gameActive) return;
+
+            // Movement calculations
+            let moveX = 0;
+            let moveZ = 0;
+
+            if (keys.w || keys.arrowup) moveZ -= 1;
+            if (keys.s || keys.arrowdown) moveZ += 1;
+            if (keys.a || keys.arrowleft) moveX -= 1;
+            if (keys.d || keys.arrowright) moveX += 1;
+
+            if (touchMove.active) {
+                moveX += touchMove.x;
+                moveZ += touchMove.y;
+            }
+
+            const speed = 0.2;
+            if (moveX !== 0 || moveZ !== 0) {
+                const angle = Math.atan2(moveX, moveZ);
+                player.rotation.y = angle;
+                
+                let nextX = player.position.x + Math.sin(angle) * speed;
+                let nextZ = player.position.z + Math.cos(angle) * speed;
+
+                // Simple boundary & collision checks
+                if (nextX > -29 && nextX < 29 && nextZ > -29 && nextZ < 29) {
+                    player.position.x = nextX;
+                    player.position.z = nextZ;
+                }
+            }
+
+            // Gravity & Jumping
+            playerVelocity.y -= 0.015;
+            player.position.y += playerVelocity.y;
+
+            if (player.position.y <= 0) {
+                player.position.y = 0;
+                playerVelocity.y = 0;
+                isGrounded = true;
+            }
+
+            // Third-person camera follow
+            const targetCamPos = new THREE.Vector3(
+                player.position.x,
+                player.position.y + 6,
+                player.position.z + 10
+            );
+            camera.position.lerp(targetCamPos, 0.1);
+            camera.lookAt(player.position.x, player.position.y + 1.5, player.position.z);
+
+            // Proximity check with target animal for current mission
+            if (currentTargetAnimalMesh) {
+                const dist = player.position.distanceTo(currentTargetAnimalMesh.position);
+                const promptEl = document.getElementById('interaction-prompt');
+                if (dist < 6) {
+                    promptEl.classList.remove('hidden');
+                    highlightPulse += 0.1;
+                    currentTargetAnimalMesh.position.y += Math.sin(highlightPulse) * 0.02;
+                } else {
+                    promptEl.classList.add('hidden');
+                }
+            }
+
+            // Timer countdown
+            // Handled via interval
+        }
+
+        function startMission(index) {
+            currentMissionIndex = index;
+            const mission = MISSIONS[index];
+            
+            // Update HUD
+            document.getElementById('hud-mission-num').innerText = `MISSION ${index + 1} / 20`;
+            document.getElementById('hud-room-name').innerText = mission.room;
+            document.getElementById('progress-bar').style.width = `${((index) / 20) * 100}%`;
+            
+            // Show Mission Banner
+            const banner = document.getElementById('mission-banner');
+            banner.innerText = `🎯 Find the ${mission.animal}! (${mission.room})`;
+            banner.classList.remove('hidden');
+            setTimeout(() => banner.classList.add('hidden'), 4000);
+
+            // Spawn animals in world
+            spawnMissionAnimals(mission);
+
+            // Reset Timer
+            missionTimer = 60;
+            document.getElementById('hud-timer').innerText = `${missionTimer}s`;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                missionTimer--;
+                document.getElementById('hud-timer').innerText = `${missionTimer}s`;
+                if (missionTimer <= 0) {
+                    clearInterval(timerInterval);
+                    alert("Time's up! Let's try this mission again.");
+                    startMission(currentMissionIndex);
+                }
+            }, 1000);
+
+            gameActive = true;
+        }
+
+        function openPuzzleChallenge() {
+            gameActive = false;
+            document.getElementById('interaction-prompt').classList.add('hidden');
+            const mission = MISSIONS[currentMissionIndex];
+
+            // Setup Scrambled Tiles
+            const words = mission.target.replace('.', '').split(' ');
+            // Shuffle
+            currentScrambledTiles = [...words].sort(() => Math.random() - 0.5);
+            currentAnswerTiles = [];
+
+            renderPuzzleTiles();
+            document.getElementById('puzzle-feedback').innerText = '';
+            document.getElementById('puzzle-modal').classList.remove('hidden');
+            soundEngine.playPop();
+        }
+
+        function renderPuzzleTiles() {
+            const answerArea = document.getElementById('answer-area');
+            const wordBank = document.getElementById('word-bank');
+
+            answerArea.innerHTML = '';
+            wordBank.innerHTML = '';
+
+            if (currentAnswerTiles.length === 0) {
+                answerArea.innerHTML = '<span class="text-gray-400 font-game text-sm">Tap words below to build sentence...</span>';
+            } else {
+                currentAnswerTiles.forEach((word, idx) => {
+                    const tile = createTileBtn(word, () => {
+                        currentAnswerTiles.splice(idx, 1);
+                        currentScrambledTiles.push(word);
+                        renderPuzzleTiles();
+                        soundEngine.playPop();
+                    });
+                    answerArea.appendChild(tile);
+                });
+            }
+
+            currentScrambledTiles.forEach((word, idx) => {
+                const tile = createTileBtn(word, () => {
+                    currentScrambledTiles.splice(idx, 1);
+                    currentAnswerTiles.push(word);
+                    renderPuzzleTiles();
+                    soundEngine.playPop();
+                });
+                wordBank.appendChild(tile);
+            });
+        }
+
+        function createTileBtn(text, onClick) {
+            const btn = document.createElement('button');
+            btn.className = 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 text-white font-game px-4 py-2 rounded-xl shadow-md border-b-2 border-indigo-800 text-base transform transition active:scale-95';
+            btn.innerText = text;
+            btn.onclick = onClick;
+            return btn;
+        }
+
+        function submitPuzzleAnswer() {
+            const mission = MISSIONS[currentMissionIndex];
+            // Reconstruct sentence with period
+            let playerSentence = currentAnswerTiles.join(' ');
+            if (!playerSentence.endsWith('.')) playerSentence += '.';
+
+            const expected = mission.target;
+
+            if (playerSentence === expected) {
+                soundEngine.playSuccess();
+                score += 100;
+                document.getElementById('hud-score').innerText = score;
+                document.getElementById('puzzle-modal').classList.add('hidden');
+
+                // Show Feedback Modal
+                document.getElementById('feedback-emoji').innerText = '🎉';
+                document.getElementById('feedback-title').innerText = 'Correct! Fantastic!';
+                document.getElementById('feedback-desc').innerText = `"${expected}"`;
+                document.getElementById('feedback-modal').classList.remove('hidden');
+            } else {
+                soundEngine.playError();
+                const fb = document.getElementById('puzzle-feedback');
+                fb.innerText = '❌ Not quite right! Check word order and try again.';
+                fb.className = 'mt-4 font-game text-base text-red-600 animate-shake';
+            }
+        }
+
+        function handleMissionCompleteNext() {
+            document.getElementById('feedback-modal').classList.add('hidden');
+            clearInterval(timerInterval);
+
+            if (currentMissionIndex + 1 < MISSIONS.length) {
+                startMission(currentMissionIndex + 1);
+            } else {
+                // Game Finished! Save to Leaderboard
+                saveScoreToLeaderboard();
+                showLeaderboardModal();
+            }
+        }
+
+        function saveScoreToLeaderboard() {
+            const totalTime = Math.floor((Date.now() - startTime) / 1000);
+            let leaderboard = JSON.parse(localStorage.getItem('animal_house_leaderboard') || '[]');
+            leaderboard.push({
+                name: playerNickname,
+                score: score,
+                time: totalTime,
+                date: new Date().toLocaleDateString()
+            });
+
+            // Sort by score descending, then time ascending
+            leaderboard.sort((a, b) => b.score - a.score || a.time - b.time);
+            // Keep top 20
+            leaderboard = leaderboard.slice(0, 20);
+            localStorage.setItem('animal_house_leaderboard', JSON.stringify(leaderboard));
+        }
+
+        function showLeaderboardModal() {
+            const tbody = document.getElementById('full-leaderboard-body');
+            tbody.innerHTML = '';
+            let leaderboard = JSON.parse(localStorage.getItem('animal_house_leaderboard') || '[]');
+
+            if (leaderboard.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="py-3 text-center text-gray-500">No scores recorded yet!</td></tr>`;
+            } else {
+                leaderboard.forEach((entry, idx) => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-yellow-200 font-semibold';
+                    let rankDisplay = `#${idx + 1}`;
+                    if (idx === 0) rankDisplay = '🥇 #1';
+                    if (idx === 1) rankDisplay = '🥈 #2';
+                    if (idx === 2) rankDisplay = '🥉 #3';
+
+                    row.innerHTML = `
+                        <td class="py-2 px-3 font-game">${rankDisplay}</td>
+                        <td class="py-2 px-3">${escapeHtml(entry.name)}</td>
+                        <td class="py-2 px-3 text-blue-600 font-game">${entry.score} pts</td>
+                        <td class="py-2 px-3 text-gray-600">${entry.time}s</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            document.getElementById('final-stats').innerText = `Amazing job, ${playerNickname}! You scored ${score} points in ${Math.floor((Date.now() - startTime)/1000)} seconds.`;
+            document.getElementById('leaderboard-modal').classList.remove('hidden');
+        }
+
+        function updatePreviewLeaderboard() {
+            const preview = document.getElementById('preview-leaderboard');
+            let leaderboard = JSON.parse(localStorage.getItem('animal_house_leaderboard') || '[]');
+            if (leaderboard.length === 0) {
+                preview.innerHTML = `<div class="text-center text-gray-500 italic">No previous scores on this device. Be the first!</div>`;
+                return;
+            }
+            preview.innerHTML = leaderboard.slice(0, 5).map((entry, idx) => `
+                <div class="flex justify-between items-center px-2 py-1 bg-white rounded-lg shadow-sm">
+                    <span class="font-game text-amber-700">#${idx+1} ${escapeHtml(entry.name)}</span>
+                    <span class="font-game text-blue-600">${entry.score} pts (${entry.time}s)</span>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        window.onload = function() {
+            init3DWorld();
+            updatePreviewLeaderboard();
+
+            // Start Button
+            document.getElementById('start-btn').addEventListener('click', () => {
+                const nickInput = document.getElementById('player-nickname').value.trim();
+                if (nickInput) {
+                    playerNickname = nickInput;
+                }
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('game-hud').classList.remove('hidden');
+                startTime = Date.now();
+                score = 0;
+                soundEngine.playSuccess();
+                startMission(0);
+            });
+
+            // Mute Audio Toggle
+            document.getElementById('mute-btn').addEventListener('click', () => {
+                soundEngine.muted = !soundEngine.muted;
+                document.getElementById('mute-btn').innerText = soundEngine.muted ? '🔇 Audio: OFF' : '🔊 Audio: ON';
+            });
+
+            // Found It Button
+            document.getElementById('found-it-btn').addEventListener('click', openPuzzleChallenge);
+
+            // Puzzle Submit / Clear / Hint
+            document.getElementById('puzzle-submit').addEventListener('click', submitPuzzleAnswer);
+            document.getElementById('puzzle-clear').addEventListener('click', () => {
+                currentScrambledTiles = [...currentScrambledTiles, ...currentAnswerTiles];
+                currentAnswerTiles = [];
+                renderPuzzleTiles();
+                soundEngine.playPop();
+            });
+            document.getElementById('puzzle-hint').addEventListener('click', () => {
+                score = Math.max(0, score - 20);
+                document.getElementById('hud-score').innerText = score;
+                const mission = MISSIONS[currentMissionIndex];
+                const fb = document.getElementById('puzzle-feedback');
+                fb.innerText = `💡 Hint: ${mission.hint}`;
+                fb.className = 'mt-4 font-game text-base text-blue-600';
+            });
+
+            // Next Mission Button
+            document.getElementById('next-mission-btn').addEventListener('click', handleMissionCompleteNext);
+
+            // Play Again Button
+            document.getElementById('play-again-btn').addEventListener('click', () => {
+                document.getElementById('leaderboard-modal').classList.add('hidden');
+                score = 0;
+                startTime = Date.now();
+                document.getElementById('hud-score').innerText = score;
+                startMission(0);
+            });
+
+            // Reset Scores Button
+            document.getElementById('reset-scores-btn').addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset all local leaderboard scores on this device?')) {
+                    localStorage.removeItem('animal_house_leaderboard');
+                    showLeaderboardModal();
+                    updatePreviewLeaderboard();
+                }
+            });
+
+            // Start Animation Loop
+            function animateLoop() {
+                requestAnimationFrame(animateLoop);
+                const delta = 0.016;
+                updateGame(delta);
+                if (renderer && scene && camera) {
+                    renderer.render(scene, camera);
+                }
+            }
+            animateLoop();
+        };
+    </script>
+</body>
+</html>
+```
